@@ -42,9 +42,6 @@ class Comment(models.Model):
         
 class Reply(models.Model):
     reply = models.CharField(max_length=100)
-    
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    post = models.ForeignKey(Post, on_delete=models.CASCADE)
     comment = models.ForeignKey(Comment, on_delete=models.CASCADE)
     
     class Meta:
