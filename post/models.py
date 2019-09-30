@@ -41,7 +41,8 @@ class Comment(models.Model):
         db_table = 'Comment'
         
 class Reply(models.Model):
-    reply = models.CharField(max_length=100)
+    reply = models.CharField(max_length=100)  
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     comment = models.ForeignKey(Comment, on_delete=models.CASCADE)
     
     class Meta:
