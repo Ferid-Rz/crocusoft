@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from .models import Post, Comment
+from users.models import Profile
 from django.views.generic import (
     ListView,
     DetailView, 
@@ -8,9 +9,10 @@ from django.views.generic import (
     DeleteView
 )
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from .forms import PostImage, ShowComment
+from .forms import *
 from rest_framework import viewsets
-from .serializers import PostSerialize
+from .serializers import PostSerialize, CommentSerialize, ProfileSerialize
+from django.http import HttpResponseRedirect
 
 
 class ShowPostView(ListView):
@@ -23,14 +25,41 @@ class ShowPostView(ListView):
         ctx = super(ShowPostView, self).get_context_data(**kwards)
         ctx['title'] = 'Главная страница блога'
         return ctx
+    
+    
+def show_post(request, pk):
+    post = Post.objects.get(id=pk)
+    comments = Comment.objects.filter(post=post, reply=None).order_by('-id')
+    
+    if request.method == 'POST':
+        comment_form = CommentForm(request.POST or None)
+        reply_form = CommentReplyForm(request.POST or None)
+        if comment_form.is_valid():
+            content = request.POST.get('content')
+            reply_id = request.POST.get('comment_id')
+            rating = request.POST.get('rating')
+            comment = Comment.objects.create(post=post,user=request.user, content=content, rating=rating)
+            comment.save()
+            return HttpResponseRedirect(post.get_absolute_url())
+        
+        if reply_form.is_valid():
+            content = request.POST.get('content')
+            reply_id = request.POST.get('comment_id')
+            comment_qs = None
+            if reply_id:
+                comment_qs = Comment.objects.get(id=reply_id)
+            comment = Comment.objects.create(post=post,user=request.user, content=content,reply=comment_qs)
+            comment.save()
+            return HttpResponseRedirect(post.get_absolute_url())
+    
+    else:
+        comment_form = CommentForm()
+        reply_form = CommentReplyForm()
 
-class PostDetailView(DetailView):
-    model = Post
+    return render(request,'post/post_detail.html',
+                  {'post': post,'comments': comments,'comment_form': comment_form,'reply_form': reply_form })
 
-    def get_context_data(self, **kwards):
-        ctx = super(PostDetailView, self).get_context_data(**kwards)
-        ctx['title'] = Post.objects.filter(pk=self.kwargs['pk']).first()
-        return ctx
+
 
 class CreatePostView(LoginRequiredMixin, CreateView):
     model = Post
@@ -67,35 +96,16 @@ class DeletePostView(LoginRequiredMixin, UserPassesTestMixin, DeleteView ):
             return True
         return False
 
-def contacts(request):
-    return render(request, 'post/contacts.html')
-
-# now starting comments 
-class ShowCommentView(ListView):
-    model = Comment
-    template_name = 'post/post_detail.html'
-    context_object_name = 'comment'
-    # ordering = ['-date']
-
-    def get_context_data(self, **kwards):
-        ctx = super(ShowPostView, self).get_context_data(**kwards)
-        ctx['title'] = 'Our Post'
-        return ctx
-
-class CreateCommentView(LoginRequiredMixin, CreateView):
-    model = Comment
-    fields = ['comment']
-    
-    def form_valid(self, form):
-        comment = ShowComment(instance=self.request.user.profile)
-        data = {
-        'comment' : comment
-        }
-        return render(self.request, 'post/post_detail.html', data)
-    
-
     
 class PostView(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerialize
+    
+class CommentView(viewsets.ModelViewSet):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerialize
+    
+class ProfileView(viewsets.ModelViewSet):
+    queryset = Profile.objects.all()
+    serializer_class = ProfileSerialize
     

@@ -68,7 +68,7 @@ WSGI_APPLICATION = 'crocusoft.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'crocusoft',
+        'NAME': 'crocu',
         'HOST': 'localhost',
         'PORT': '3306',
         'USER': 'ferid',

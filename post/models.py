@@ -3,6 +3,8 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from django.urls import reverse
 from PIL import Image
+from enumfields import EnumField
+from enumfields import Enum 
 
 class Post(models.Model):
     title = models.CharField(max_length=100)
@@ -29,21 +31,25 @@ class Post(models.Model):
             resize = (512,512)
             image.thumbnail(resize)
             image.save(self.img.path)
+            
+class Rating(Enum):
+    AWESOME = 'Awesome'
+    GOOD = 'Good'
+    NORMAL = 'Normal'
+    BAD = 'Bad'
+    VERY_BAD = 'Very bad'
     
 class Comment(models.Model):
-    comment = models.CharField(max_length=100)
-    rating = models.SmallIntegerField()
-    
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    reply = models.ForeignKey('Comment', null=True, related_name='replies', on_delete=models.CASCADE)
+    rating = EnumField(Rating, max_length=8, null=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     
     class Meta:
         db_table = 'Comment'
         
-class Reply(models.Model):
-    reply = models.CharField(max_length=100)  
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    comment = models.ForeignKey(Comment, on_delete=models.CASCADE)
-    
-    class Meta:
-        db_table = 'Reply'
+    def __str__(self):
+        return '{} - {}'.format(self.user.username, str(self.content))
+        
