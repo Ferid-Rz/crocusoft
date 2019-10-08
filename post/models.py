@@ -15,6 +15,10 @@ class Post(models.Model):
     
     class Meta:
         db_table = 'Post'
+        
+    @property
+    def comments(self):
+        return self.comment_set.all()
 
     def __str__(self):
         return self.title

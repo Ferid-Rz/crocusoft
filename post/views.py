@@ -11,8 +11,11 @@ from django.views.generic import (
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from .forms import *
 from rest_framework import viewsets
+from rest_framework.decorators import detail_route, action
 from .serializers import PostSerialize, CommentSerialize, ProfileSerialize
 from django.http import HttpResponseRedirect
+from rest_framework.response import Response
+
 
 
 class ShowPostView(ListView):
@@ -25,8 +28,6 @@ class ShowPostView(ListView):
         ctx = super(ShowPostView, self).get_context_data(**kwards)
         ctx['title'] = 'Главная страница блога'
         return ctx
-    
-    
 def show_post(request, pk):
     post = Post.objects.get(id=pk)
     comments = Comment.objects.filter(post=post, reply=None).order_by('-id')
@@ -97,9 +98,34 @@ class DeletePostView(LoginRequiredMixin, UserPassesTestMixin, DeleteView ):
         return False
 
     
+# class PostView(viewsets.ModelViewSet):
+#     queryset = Post.objects.all()
+#     serializer_class = PostSerialize
+    
+    
+#     @detail_route(url_name='comment')
+#     def comment(self, request, pk=None, comment_id=None):
+#         post = Post.objects.get(id=pk)
+#         # queryset = Comment.objects.filter(book__pk=pk)
+#         queryset = Comment.objects.filter(post=post, reply=None).order_by('-id')
+#         serializer = CommentSerialize(queryset,
+#                         context={'request':request},
+#                         many=True)
+#         return Response(serializer.data)
+
 class PostView(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerialize
+    
+    @detail_route(methods=['get'])
+    def comment(self, request, pk=None, comment_id=None):
+
+        post = Post.objects.get(id=pk)
+        queryset = Comment.objects.filter(post=post, reply=None).order_by('-id')
+        serializer = CommentSerialize(queryset,
+                        context={'request':request},
+                        many=True)
+        return Response(serializer.data)
     
 class CommentView(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
